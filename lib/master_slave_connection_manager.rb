@@ -61,7 +61,8 @@ class MasterSlaveConnectionManager
   # check whether current +sync_id+ is in the slave database
   def sync_id_in_reader_db?
     return true unless @sync_id
-    @read_connection.select_value("SELECT true FROM replication_check WHERE id=#{@sync_id}")
+    quoted_sync_id = @sync_id.to_i
+    @read_connection.select_value("SELECT true FROM replication_check WHERE id=#{quoted_sync_id}")
   end
 
   def retrieve_connection
