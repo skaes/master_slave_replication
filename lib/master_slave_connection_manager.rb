@@ -68,7 +68,8 @@ class MasterSlaveConnectionManager
     @@synchronization_retries.times do
       if sync_id_in_reader_db?
         # when found, clear @sync_id so that it gets cleared from the
-        # session in the controller filter
+        # session in after part of the session synchronization filter
+        # on the controller.
         @sync_id = nil
         return @read_connection
       else
@@ -80,7 +81,8 @@ class MasterSlaveConnectionManager
 
   # force slave connection for the duration of a passed in block. this
   # bypasses all synchronization checks. dangerous, but useful for
-  # querying stuff which doesn't need to be up to date.
+  # querying stuff which doesn't need to be up to date, like full text
+  # queries on the slave.
   def force_slave_connection(&block)
     current_connection = @connection
     @connection = @read_connection
