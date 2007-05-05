@@ -26,12 +26,12 @@ class MasterSlaveConnectionManager
   def initialize
     @logger = RAILS_DEFAULT_LOGGER
     # get default connection (master) and cache it
-    @write_connection = ActiveRecord::Base.connection
+    @write_connection = ActiveRecord::Base.connection_without_synchronization
     # get connection to slave DB and store it on the abstract slave class
     begin
       slave_config = "#{RAILS_ENV}_slave".to_sym
       Slave.establish_connection slave_config
-      @read_connection = Slave.connection
+      @read_connection = Slave.connection_without_synchronization
     rescue ActiveRecord::AdapterNotSpecified
       # fall back to master if no slave given specified
       logger.warn "no slave database specified for configuration #{RAILS_ENV}, add #{slave_config}" if logger

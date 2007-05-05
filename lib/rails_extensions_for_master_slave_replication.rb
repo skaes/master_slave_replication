@@ -9,7 +9,7 @@ module MasterSlaveReplication
         end
         class << self
           # don't need to alias :destroy_all as it gets called by destroy
-          for method in [:update_all, :delete_all, :transaction]
+          for method in [:connection, :update_all, :delete_all, :transaction]
             alias_method_chain method, :synchronization
           end
         end
@@ -33,7 +33,7 @@ module MasterSlaveReplication
         MasterSlaveConnectionManager.instance
       end
 
-      def connection
+      def connection_with_synchronization
         connection_manager.connection
       end
 
