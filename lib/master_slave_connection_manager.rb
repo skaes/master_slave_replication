@@ -33,7 +33,7 @@ class MasterSlaveConnectionManager
       Slave.establish_connection slave_config
       @read_connection = Slave.connection
     rescue ActiveRecord::AdapterNotSpecified
-      # fall back to master if no slave given
+      # fall back to master if no slave given specified
       logger.warn "no slave database specified for configuration #{RAILS_ENV}, add #{slave_config}" if logger
       @read_connection = @write_connection
     end
@@ -45,7 +45,8 @@ class MasterSlaveConnectionManager
     @sync_id = nil
   end
 
-  # switch connection to master and insert new sync_id into replication check table
+  # switch connection to master. insert new sync_id into replication
+  # check table.
   def insert_sync_id(result=nil)
     @connection = @write_connection
     @sync_id = @connection.insert("INSERT INTO replication_check ( created_at ) VALUES ( NOW() )")
@@ -57,7 +58,7 @@ class MasterSlaveConnectionManager
     @connection ||= @sync_id ? retrieve_connection : @read_connection
   end
 
-  # check whether syn
+  # check whether current +sync_id+ is in the slave database
   def sync_id_in_reader_db?
     return true unless @sync_id
     @read_connection.select_value("SELECT true FROM replication_check WHERE id=#{@sync_id}")
@@ -77,7 +78,9 @@ class MasterSlaveConnectionManager
     @write_connection
   end
 
-  # force slave connection
+  # force slave connection for the duration of a passed in block. this
+  # bypasses all synchronization checks. dangerous, but useful for
+  # querying stuff which doesn't need to be up to date.
   def force_slave_connection(&block)
     current_connection = @connection
     @connection = @read_connection
@@ -88,7 +91,7 @@ class MasterSlaveConnectionManager
     end
   end
 
-  # force master connection
+  # force master connection for the duration of a passed in block.
   def force_master_connection(&block)
     current_connection = @connection
     @connection = @write_connection
