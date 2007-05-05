@@ -5,5 +5,5 @@ end
 require "master_slave_connection_manager"
 require "rails_extensions_for_master_slave_replication"
 
-ActiveRecord::Base.include MasterSlaveReplication::ActiveRecord
-ActionController::Base.include MasterSlaveReplication::ActionController
+ActiveRecord::Base.send :include, MasterSlaveReplication::ActiveRecord
+ActionController::Base.send :include, MasterSlaveReplication::ActionController

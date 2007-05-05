@@ -7,7 +7,7 @@ class MasterSlaveConnectionManager
     abstract_class = true
   end
 
-  attr_accessor :sync_id, :write_connection, :read_connection
+  attr_accessor :sync_id, :write_connection, :read_connection, :logger
 
   # sleep +synchronization_interval+ seconds before retrying
   @@synchronization_interval = 0.2
@@ -24,11 +24,19 @@ class MasterSlaveConnectionManager
 
   # use Rails magic to establish master/slave connections
   def initialize
+    @logger = RAILS_DEFAULT_LOGGER
     # get default connection (master) and cache it
     @write_connection = ActiveRecord::Base.connection
     # get connection to slave DB and store it on the abstract slave class
-    Slave.establish_connection "#{RAILS_ENV}_slave".to_sym
-    @read_connection = Slave.connection
+    begin
+      slave_config = "#{RAILS_ENV}_slave".to_sym
+      Slave.establish_connection slave_config
+      @read_connection = Slave.connection
+    rescue ActiveRecord::AdapterNotSpecified
+      # fall back to master if no slave given
+      logger.warn "no slave database specified for configuration #{RAILS_ENV}, add #{slave_config}" if logger
+      @read_connection = @write_connection
+    end
   end
 
   # reset current connection and sync_id
@@ -81,7 +89,7 @@ class MasterSlaveConnectionManager
   end
 
   # force master connection
-  def force_slave_connection(&block)
+  def force_master_connection(&block)
     current_connection = @connection
     @connection = @write_connection
     begin
