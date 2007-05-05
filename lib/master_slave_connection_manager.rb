@@ -17,10 +17,10 @@ class MasterSlaveConnectionManager
   @@synchronization_retries = 3
   cattr_accessor :synchronization_retries
 
-  # clean out sync_ids after +old_sync_id_interval+ seconds. defaults to 1 day.
+  # clean out sync_ids after +synchronization_cleanup_interval+ seconds. defaults to 1 day.
   # setting this too low will cause problems.
-  @@sync_ids_clean_interval = 60 * 60 * 24 # 1 day
-  cattr_accessor :sync_ids_clean_interval
+  @@synchronization_cleanup_interval = 60 * 60 * 24 # 1 day
+  cattr_accessor :synchronization_cleanup_interval
 
   # use Rails magic to establish master/slave connections
   def initialize
@@ -47,7 +47,7 @@ class MasterSlaveConnectionManager
 
   # switch connection to master. insert new sync_id into replication
   # check table.
-  def insert_sync_id(result=nil)
+  def synchronize(result=nil)
     @connection = @write_connection
     @sync_id = @connection.insert("INSERT INTO replication_check ( created_at ) VALUES ( NOW() )")
     result
@@ -59,7 +59,7 @@ class MasterSlaveConnectionManager
   end
 
   # check whether current +sync_id+ is in the slave database
-  def sync_id_in_reader_db?
+  def synchronized?
     return true unless @sync_id
     quoted_sync_id = @sync_id.to_i
     @read_connection.select_value("SELECT true FROM replication_check WHERE id=#{quoted_sync_id}")
@@ -67,7 +67,7 @@ class MasterSlaveConnectionManager
 
   def retrieve_connection
     @@synchronization_retries.times do
-      if sync_id_in_reader_db?
+      if synchronized?
         # when found, clear @sync_id so that it gets cleared from the
         # session in after part of the session synchronization filter
         # on the controller.
@@ -107,7 +107,7 @@ class MasterSlaveConnectionManager
 
   # clean up old sync_ids
   def delete_old_sync_ids
-    @write_connection.execute "DELETE FROM replication_check WHERE updated_at < (now() - interval '#{@@sync_ids_clean_interval} seconds')"
+    @write_connection.execute "DELETE FROM replication_check WHERE updated_at < (now() - interval '#{@@synchronization_cleanup_interval} seconds')"
   end
 end
 

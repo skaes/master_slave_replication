@@ -17,15 +17,15 @@ module MasterSlaveReplication
     end
 
     def create_with_synchronization
-      self.class.connection_manager.insert_sync_id(create_without_synchronization)
+      self.class.connection_manager.synchronize(create_without_synchronization)
     end
 
     def update_with_synchronization
-      self.class.connection_manager.insert_sync_id(update_without_synchronization)
+      self.class.connection_manager.synchronize(update_without_synchronization)
     end
 
     def destroy_with_synchronization
-      self.class.connection_manager.insert_sync_id(destroy_without_synchronization)
+      self.class.connection_manager.synchronize(destroy_without_synchronization)
     end
 
     module ClassMethods
@@ -38,15 +38,15 @@ module MasterSlaveReplication
       end
 
       def update_all_with_synchronization(updates, conditions = nil)
-        connection_manager.insert_sync_id(update_all_without_synchronization(updates, conditions))
+        connection_manager.synchronize(update_all_without_synchronization(updates, conditions))
       end
 
       def delete_all_with_synchronization(conditions = nil)
-        connection_manager.insert_sync_id(delete_all_without_synchronization(conditions))
+        connection_manager.synchronize(delete_all_without_synchronization(conditions))
       end
 
       def transaction_with_synchronization(*args)
-        connection_manager.insert_sync_id
+        connection_manager.synchronize
         transaction_without_synchronization(*args)
       end
 
