@@ -17,36 +17,48 @@ module MasterSlaveReplication
     end
 
     def create_with_synchronization
-      self.class.connection_manager.synchronize(create_without_synchronization)
+      self.class.synchronize(create_without_synchronization)
     end
 
     def update_with_synchronization
-      self.class.connection_manager.synchronize(update_without_synchronization)
+      self.class.synchronize(update_without_synchronization)
     end
 
     def destroy_with_synchronization
-      self.class.connection_manager.synchronize(destroy_without_synchronization)
+      self.class.synchronize(destroy_without_synchronization)
     end
 
     module ClassMethods
+      def exclude_from_synchronization
+        @excluded_from_synchronization = true
+      end
+
       def connection_manager
         MasterSlaveConnectionManager.instance
       end
 
+      def synchronize(result = nil)
+        @excluded_from_synchronization ? result : connection_manager.synchronize(result)
+      end
+
       def connection_with_synchronization
-        connection_manager.connection
+        if @excluded_from_synchronization
+          connection_without_synchronization
+        else
+          connection_manager.connection
+        end
       end
 
       def update_all_with_synchronization(updates, conditions = nil)
-        connection_manager.synchronize(update_all_without_synchronization(updates, conditions))
+        synchronize(update_all_without_synchronization(updates, conditions))
       end
 
       def delete_all_with_synchronization(conditions = nil)
-        connection_manager.synchronize(delete_all_without_synchronization(conditions))
+        synchronize(delete_all_without_synchronization(conditions))
       end
 
       def transaction_with_synchronization(*args)
-        connection_manager.synchronize
+        synchronize
         transaction_without_synchronization(*args)
       end
 
