@@ -1,0 +1,10 @@
+Description:
+    The master replication generator creates a migration for use with
+    the master slave replication plugin.
+
+Example:
+    ./script/generate master_slave_replication
+
+    This will create the following migration:
+
+      db/migrate/XXX_add_master_slave_replication.rb
