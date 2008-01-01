@@ -74,11 +74,7 @@ module MasterSlaveReplication
 
   # extensions for ActionController::Base
   module ActionController
-    def self.included(base)
-      base.prepend_around_filter :synchronize_session
-    end
-
-    def synchronize_session
+    def master_slave_replication
       # retrieve connection manager instance and set sync id from
       # session. if sync_id is nil, reads will all go to the slave
       # database. if sync_id is not nil, then the first read will

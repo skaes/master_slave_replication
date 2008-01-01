@@ -2,6 +2,11 @@
 class MasterSlaveConnectionManager
   include Singleton
 
+  # class to store the master DB connection
+  class Master < ActiveRecord::Base
+    abstract_class = true
+  end
+
   # class to store the slave DB connection
   class Slave < ActiveRecord::Base
     abstract_class = true
@@ -13,12 +18,14 @@ class MasterSlaveConnectionManager
   @@synchronization_interval = 0.2
   cattr_accessor :synchronization_interval
 
-  # check +synchronization_retries+ times whether +sync_id+ has appeared in the slave database
+  # check +synchronization_retries+ times whether +sync_id+ has
+  # appeared in the slave database
   @@synchronization_retries = 3
   cattr_accessor :synchronization_retries
 
-  # clean out sync_ids after +synchronization_cleanup_interval+ seconds. defaults to 1 day.
-  # setting this too low will cause problems.
+  # clean out sync_ids after +synchronization_cleanup_interval+
+  # seconds. defaults to 1 day. setting this too low will cause
+  # problems.
   @@synchronization_cleanup_interval = 60 * 60 * 24 # 1 day
   cattr_accessor :synchronization_cleanup_interval
 
@@ -26,7 +33,8 @@ class MasterSlaveConnectionManager
   def initialize
     @logger = RAILS_DEFAULT_LOGGER
     # get default connection (master) and cache it
-    @write_connection = ActiveRecord::Base.connection_without_synchronization
+    Master.establish_connection RAILS_ENV
+    @write_connection = Master.connection_without_synchronization
     # get connection to slave DB and store it on the abstract slave class
     begin
       slave_config = "#{RAILS_ENV}_slave".to_sym
@@ -35,7 +43,7 @@ class MasterSlaveConnectionManager
     rescue ActiveRecord::AdapterNotSpecified
       # fall back to master if no slave given specified
       logger.warn "no slave database specified for configuration #{RAILS_ENV}, add #{slave_config}" if logger
-      @read_connection = @write_connection
+      Slave.connection = @read_connection = @write_connection
     end
   end
 
@@ -49,7 +57,7 @@ class MasterSlaveConnectionManager
   # check table.
   def synchronize(result=nil)
     @connection = @write_connection
-    @sync_id = @connection.insert("INSERT INTO replication_check ( created_at ) VALUES ( NOW() )")
+    @sync_id = @connection.insert("INSERT INTO replication_check (created_at) VALUES (NOW())")
     result
   end
 
@@ -69,8 +77,8 @@ class MasterSlaveConnectionManager
     @@synchronization_retries.times do
       if synchronized?
         # when found, clear @sync_id so that it gets cleared from the
-        # session in after part of the session synchronization filter
-        # on the controller.
+        # session in after part of the master slave setup filter on
+        # the controller.
         @sync_id = nil
         return @read_connection
       else
